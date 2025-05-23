@@ -163,3 +163,6 @@ class WxClient:
                 raise VerifyError()
         else:
             return (resp.status_code, resp.content)
+
+    async def verify(self, timestamp: str, nonce: str, sign: str, data: str) -> bool:
+        return CryptoHelper.verify(self.sec, timestamp, nonce, sign, data)

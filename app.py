@@ -1,6 +1,9 @@
 import uvicorn
-from aigc import app, config, models, wx, deps
+from aigc import config, models, wx, deps, router
 from argparse import ArgumentParser
+import redis.asyncio as redis
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
 
 
 def main() -> None:
@@ -21,23 +24,38 @@ def main() -> None:
     parser.add_argument("--port", help="WEB API port",
                         default=default_config.api_port)
     arguments = parser.parse_args()
+    secret, apiclient_key, pub_key = arguments.secret, arguments.apiclient_key_file, arguments.pub_key_file
 
-    # Load and parse secerts file.
-    # Set it to app.
-    sec = wx.must_load_secert(
-        secerts=arguments.secret,
-        apiclient_key=arguments.apiclient_key_file,
-        pub_key=arguments.pub_key_file)
-    deps.set_wx_client_deps(app.app, sec)
+    # Make app lifespan manager.
+    @asynccontextmanager
+    async def app_lifespan(app: FastAPI):
+        sec = wx.must_load_secert(
+            secerts=secret,
+            apiclient_key=apiclient_key,
+            pub_key=pub_key)
+        deps.set_wx_client_deps(app, sec)
 
-    # Initialize databases.
-    db_file = default_config.database_file
-    engine = models.initialize_database_io(db_file)
-    deps.set_db_session_deps(app.app, engine)
+        engine = models.initialize_database_io(default_config.database_file)
+        deps.set_db_session_deps(app, engine)
 
-    # Start webapi service.
+        conn_pool = redis.ConnectionPool(
+            host=default_config.redis_host,
+            port=default_config.redis_port,
+            db=default_config.redis_db,
+            decode_responses=True
+        )
+        rdb = redis.Redis(connection_pool=conn_pool)
+        deps.set_rdb_deps(app, rdb)
+
+        yield
+
+        await conn_pool.aclose()
+
+    app = FastAPI(lifespan=app_lifespan)
+    app.include_router(router)
+
     try:
-        uvicorn.run(app.app, host=arguments.host, port=arguments.port)
+        uvicorn.run(app, host=arguments.host, port=arguments.port)
     except KeyboardInterrupt:
         pass
 
