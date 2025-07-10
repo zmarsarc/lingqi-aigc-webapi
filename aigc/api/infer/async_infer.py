@@ -237,7 +237,7 @@ async def get_req_state(
 
             if ilog is None:
                 raise KeyError()
-            
+
             response.state = str(ilog.state)
 
     return response
