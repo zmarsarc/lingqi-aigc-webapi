@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from .. import deps, models
+from .. import deps, models, sessions
 from sqlmodel import select, Session
 from datetime import datetime
 
@@ -8,7 +8,7 @@ router = APIRouter(prefix="/user")
 
 @router.get("/info")
 async def user_info(
-    ses: deps.UserSession,
+    ses: sessions.Session = Depends(deps.get_user_session),
     db: Session = Depends(deps.get_db_session),
 ) -> models.user.GetUserInfoResponse:
     userinfo = db.get_one(models.db.User, ses.uid)

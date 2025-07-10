@@ -207,8 +207,8 @@ router = APIRouter(prefix="/async/infer", route_class=InferRoute)
 @router.get("/{tid}/state")
 async def get_req_state(
     tid: str,
-    ses: deps.UserSession,
-    db: Engine = Depends(deps.get_db_engine),
+    ses: sessions.Session = Depends(deps.get_user_session),
+    db: Engine = Depends(deps.get_db),
     req_dict: BackgroundRequestsDict = Depends(get_requests_dict),
 ) -> GetStateResponse:
 
@@ -247,7 +247,7 @@ async def get_req_state(
 @router.get("/{tid}/result")
 async def get_req_result(
     tid: str,
-    ses: deps.UserSession,
+    ses: sessions.Session = Depends(deps.get_user_session),
     req_dict: BackgroundRequestsDict = Depends(get_requests_dict),
 ) -> Response:
 
@@ -267,7 +267,7 @@ async def get_req_result(
 @router.get("/{tid}/result/wait")
 async def wait_req_result(
     tid: str,
-    ses: deps.UserSession,
+    ses: sessions.Session = Depends(deps.get_user_session),
     req_dict: BackgroundRequestsDict = Depends(get_requests_dict),
     conf: config.Config = Depends(config.get_config),
 ) -> Response:
@@ -297,7 +297,7 @@ async def wait_req_result(
 @router.post("/{tid}/cancel")
 async def cancel_waiting_request(
     tid: str,
-    ses: deps.UserSession,
+    ses: sessions.Session = Depends(deps.get_user_session),
     req_dict: BackgroundRequestsDict = Depends(get_requests_dict),
 ) -> APIResponse:
 
@@ -323,7 +323,7 @@ async def replace_with_any(
     bg: BackgroundTasks,
     ses: sessions.Session = Depends(deps.get_user_session),
     pm: PointManager = Depends(get_point_manager),
-    db: Engine = Depends(deps.get_db_engine),
+    db: Engine = Depends(deps.get_db),
     req_dict: BackgroundRequestsDict = Depends(get_requests_dict),
     conf: config.Config = Depends(config.get_config),
 ) -> CreateRequestResponse:
@@ -355,9 +355,9 @@ async def replace_with_any(
 @router.post("/replace_with_reference")
 async def replace_with_reference(
     req: Request,
-    ses: deps.UserSession,
     bg: BackgroundTasks,
-    db: Engine = Depends(deps.get_db_engine),
+    ses: sessions.Session = Depends(deps.get_user_session),
+    db: Engine = Depends(deps.get_db),
     pm: PointManager = Depends(get_point_manager),
     req_dict: BackgroundRequestsDict = Depends(get_requests_dict),
     conf: config.Config = Depends(config.get_config),
@@ -389,9 +389,9 @@ async def replace_with_reference(
 @router.post("/image_to_video")
 async def image_to_video(
     req: Request,
-    ses: deps.UserSession,
     bg: BackgroundTasks,
-    db: Engine = Depends(deps.get_db_engine),
+    ses: sessions.Session = Depends(deps.get_user_session),
+    db: Engine = Depends(deps.get_db),
     pm: PointManager = Depends(get_point_manager),
     req_dict: BackgroundRequestsDict = Depends(get_requests_dict),
     conf: config.Config = Depends(config.get_config),
@@ -424,9 +424,9 @@ async def image_to_video(
 @router.post("/segment_any")
 async def segment_any(
     req: Request,
-    ses: deps.UserSession,
     bg: BackgroundTasks,
-    db: Engine = Depends(deps.get_db_engine),
+    ses: sessions.Session = Depends(deps.get_user_session),
+    db: Engine = Depends(deps.get_db),
     pm: PointManager = Depends(get_point_manager),
     req_dict: BackgroundRequestsDict = Depends(get_requests_dict),
     conf: config.Config = Depends(config.get_config),
@@ -460,9 +460,9 @@ async def segment_any(
 @router.post("/edit_with_prompt")
 async def edit_with_prompt(
     req: Request,
-    ses: deps.UserSession,
     bg: BackgroundTasks,
-    db: Engine = Depends(deps.get_db_engine),
+    ses: sessions.Session = Depends(deps.get_user_session),
+    db: Engine = Depends(deps.get_db),
     pm: PointManager = Depends(get_point_manager),
     req_dict: BackgroundRequestsDict = Depends(get_requests_dict),
     conf: config.Config = Depends(config.get_config),

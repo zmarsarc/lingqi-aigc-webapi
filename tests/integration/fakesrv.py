@@ -13,7 +13,7 @@ router = APIRouter()
 # Add a test api to register user and give a trail.
 @router.post("/user/register")
 async def user_register(
-    req: Request, db: Engine = Depends(deps.get_db_engine)
+    req: Request, db: Engine = Depends(deps.get_db)
 ) -> Response:
     body = await req.json()
 
@@ -40,7 +40,7 @@ async def user_register(
 @router.post("/user/login")
 async def user_login(
     req: Request,
-    db: Engine = Depends(deps.get_db_engine),
+    db: Engine = Depends(deps.get_db),
     rdb: redis.Redis = Depends(deps.get_rdb),
 ) -> Response:
     body = await req.json()
@@ -72,7 +72,7 @@ def make_fake_app() -> FastAPI:
     app = FastAPI()
 
     app.dependency_overrides[config.get_config] = lambda: conf
-    app.dependency_overrides[deps.get_db_engine] = lambda: engine
+    app.dependency_overrides[deps.get_db] = lambda: engine
     app.dependency_overrides[deps.get_rdb] = lambda: rdb
 
     app.include_router(router, prefix="/test")
