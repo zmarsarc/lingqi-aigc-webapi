@@ -38,12 +38,12 @@ class RedisConfig:
 
 @dataclass
 class DatabaseConfig:
-    file: str = field(default_factory=lambda: _default_filepath)
+    url: str = field(default_factory=lambda: _default_filepath)
 
     @staticmethod
     def load(toml: dict[str, Any]) -> "DatabaseConfig":
         file: str = toml["file"]
-        return DatabaseConfig(file=file)
+        return DatabaseConfig(url=file)
 
 
 @dataclass

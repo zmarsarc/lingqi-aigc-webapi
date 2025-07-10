@@ -3,11 +3,10 @@ from sqlalchemy import Engine
 from . import user, payment, db, mainpage  # type: ignore
 
 
-def initialize_database_io(db_file_name: str) -> Engine:
-    sqlite_url = f"sqlite:///{db_file_name}"
+def initialize_database_io(url: str) -> Engine:
     connect_args = {"check_same_thread": False}
 
-    engine = create_engine(sqlite_url, connect_args=connect_args)
+    engine = create_engine(url, connect_args=connect_args)
 
     SQLModel.metadata.create_all(engine)
 

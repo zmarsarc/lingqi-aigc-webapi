@@ -10,7 +10,7 @@ port = 6379
 db = 0
 
 [database]
-file = "database.db"
+url = "sqlite:///database.db"
 
 [wechat]
 login_redirect = "https://www.lingqi.tech/aigc/api/wx/login/callback"
