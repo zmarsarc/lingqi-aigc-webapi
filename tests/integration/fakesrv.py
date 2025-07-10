@@ -12,9 +12,7 @@ router = APIRouter()
 
 # Add a test api to register user and give a trail.
 @router.post("/user/register")
-async def user_register(
-    req: Request, db: Engine = Depends(deps.get_db)
-) -> Response:
+async def user_register(req: Request, db: Engine = Depends(deps.get_db)) -> Response:
     body = await req.json()
 
     user = models.db.User(
@@ -77,5 +75,7 @@ def make_fake_app() -> FastAPI:
 
     app.include_router(router, prefix="/test")
     app.include_router(api.user.router)
+    app.include_router(api.gallery.router)
+    app.include_router(api.infer.router)
 
     return app
