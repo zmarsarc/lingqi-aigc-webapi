@@ -1,6 +1,6 @@
 from typing import Annotated
 from collections.abc import Iterator
-from fastapi import Depends, Request, FastAPI, HTTPException, Header
+from fastapi import Depends, HTTPException, Header
 from sqlmodel import Session
 from sqlalchemy import Engine
 import redis.asyncio as redis
@@ -10,12 +10,33 @@ from functools import cache
 
 
 def get_db_file_path(conf: config.Config = Depends(config.get_config)) -> str:
-    return conf.database.file
+    return conf.database.url
+
+
+def get_rdb_host(conf: config.Config = Depends(config.get_config)) -> str:
+    return conf.redis.host
+
+
+def get_rdb_port(conf: config.Config = Depends(config.get_config)) -> int:
+    return conf.redis.port
+
+
+def get_rdb_db(conf: config.Config = Depends(config.get_config)) -> int:
+    return conf.redis.db
 
 
 @cache
 def get_db_engine(filepath: str = Depends(get_db_file_path)) -> Engine:
     return models.initialize_database_io(filepath)
+
+
+@cache
+def get_rdb(
+    host: str = Depends(get_rdb_host),
+    port: int = Depends(get_rdb_port),
+    db: int = Depends(get_rdb_db)
+) -> redis.Redis:
+    return redis.Redis(host=host, port=port, db=db, decode_responses=True)
 
 
 def get_db_session(engine: Engine = Depends(get_db_engine)) -> Iterator[Session]:
@@ -26,18 +47,11 @@ def get_db_session(engine: Engine = Depends(get_db_engine)) -> Iterator[Session]
 HeaderField = Annotated[str, Header()]
 
 
-def set_rdb_deps(app: FastAPI, rdb: redis.Redis):
-    app.state.rdb = rdb
-
-
-def get_rdb(req: Request) -> redis.Redis:
-    return req.app.state.rdb
-
-
 def get_auth_token(authorization: HeaderField) -> str:
     auth_type, token = authorization.split(" ")
     if auth_type != "bearer" or token == "":
-        raise HTTPException(status_code=401, detail="no valid authorization to access.")
+        raise HTTPException(
+            status_code=401, detail="no valid authorization to access.")
     return token
 
 
@@ -49,7 +63,8 @@ AuthToken = Annotated[str, Depends(get_auth_token)]
 async def get_user_session(rdb: Rdb, token: AuthToken) -> sessions.Session:
     ses = await sessions.get_session_or_none(rdb, token)
     if ses is None:
-        raise HTTPException(status_code=401, detail="no valid authorization to access.")
+        raise HTTPException(
+            status_code=401, detail="no valid authorization to access.")
 
     # Refersh session automaticly when have valid session.
     await sessions.refresh_session(rdb, token)
