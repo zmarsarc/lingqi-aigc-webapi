@@ -42,7 +42,7 @@ class DatabaseConfig:
 
     @staticmethod
     def load(toml: dict[str, Any]) -> "DatabaseConfig":
-        file: str = toml["file"]
+        file: str = toml["url"]
         return DatabaseConfig(url=file)
 
 
