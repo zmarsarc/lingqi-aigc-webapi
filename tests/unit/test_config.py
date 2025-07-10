@@ -11,7 +11,7 @@ fake_web_conf: dict[str, Any] = {
 
 fake_redis_conf: dict[str, Any] = {"host": "127.0.0.1", "port": 6379, "db": 0}
 
-fake_database_conf: dict[str, Any] = {"file": "dbfile.db"}
+fake_database_conf: dict[str, Any] = {"url": "sqlite:///dbfile.db"}
 
 fake_wechat_secret_conf: dict[str, Any] = {
     "login_id": "fake login id",
