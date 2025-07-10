@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from .. import sessions, deps, models
-import sqlmodel
+from sqlmodel import Session, select, desc, func
+from sqlalchemy import Engine
 from typing import Any
 import json
 
@@ -37,30 +38,33 @@ async def get_inference_history(
     start: int,
     count: int,
     ses: sessions.Session = Depends(deps.get_user_session),
-    db: sqlmodel.Session = Depends(deps.get_db_session),
+    db: Engine = Depends(deps.get_db),
 ) -> APIResponse:
 
     selection = (
-        sqlmodel.select(models.db.InferenceLog)
+        select(models.db.InferenceLog)
         .where(models.db.InferenceLog.uid == ses.uid)
         .where(models.db.InferenceLog.type != models.db.InferenceType.segment_any)
-        .order_by(sqlmodel.desc(models.db.InferenceLog.ctime))
+        .order_by(desc(models.db.InferenceLog.ctime))
         .offset(start)
         .limit(count)
     )
 
     count_query = (
-        sqlmodel.select(sqlmodel.func.count())
+        select(func.count())
         .select_from(models.db.InferenceLog)
         .where(models.db.InferenceLog.uid == ses.uid)
         .where(models.db.InferenceLog.type != models.db.InferenceType.segment_any)
     )
-    total = db.exec(count_query).one()
+
+    with Session(db) as dbsession:
+        total = dbsession.exec(count_query).one()
+        history = dbsession.exec(selection).all()
 
     result = GetInferenceHistoryWithPage(
         start=start, count=count, total=total, history=[]
     )
-    for row in db.exec(selection).all():
+    for row in history:
         h = InferenceHistory(
             tid=row.tid,
             type=str(row.type),
@@ -84,14 +88,16 @@ async def get_inference_history(
 async def delete_inference_history(
     tid: str,
     ses: sessions.Session = Depends(deps.get_user_session),
-    dbsession: sqlmodel.Session = Depends(deps.get_db_session),
+    db: Engine = Depends(deps.get_db),
 ) -> APIResponse:
     query = (
-        sqlmodel.select(models.db.InferenceLog)
+        select(models.db.InferenceLog)
         .where(models.db.InferenceLog.uid == ses.uid)
         .where(models.db.InferenceLog.tid == tid)
     )
-    ilog = dbsession.exec(query).one_or_none()
+
+    with Session(db) as dbsession:
+        ilog = dbsession.exec(query).one_or_none()
 
     if ilog is not None:
         dbsession.delete(ilog)

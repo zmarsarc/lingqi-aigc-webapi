@@ -1,3 +1,4 @@
+from sqlalchemy import Engine
 from sqlmodel import Session, select
 from datetime import datetime, timedelta
 from loguru import logger
@@ -13,32 +14,33 @@ def delay_to_next_middle_night(now: datetime) -> int:
     return delay_s
 
 
-def refresh_subscriptions(db: Session, dt: datetime):
-    subscriptions = db.exec(
-        select(models.db.MagicPointSubscription).where(
-            models.db.MagicPointSubscription.expired == False
-        )
-    ).all()
+def refresh_subscriptions(db: Engine, dt: datetime):
+    with Session(db) as ses:
+        subscriptions = ses.exec(
+            select(models.db.MagicPointSubscription).where(
+                models.db.MagicPointSubscription.expired == False
+            )
+        ).all()
 
-    # Refresh subscriptions, if exipre, set state.
-    for s in subscriptions:
-        s.utime = dt
+        # Refresh subscriptions, if exipre, set state.
+        for s in subscriptions:
+            s.utime = dt
 
-        if s.expires_in is not None and dt > s.expires_in:
-            s.expired = True
+            if s.expires_in is not None and dt > s.expires_in:
+                s.expired = True
 
-        else:
-            s.remains = s.init
+            else:
+                s.remains = s.init
 
-    log = models.db.SubscriptionsRefreshLog(refresh_time=dt, cnt=len(subscriptions))
+        log = models.db.SubscriptionsRefreshLog(refresh_time=dt, cnt=len(subscriptions))
 
-    db.add(log)
-    db.commit()
+        ses.add(log)
+        ses.commit()
 
     logger.info(f"refresh subscrptions, total {len(subscriptions)}")
 
 
-async def refresh_forever(db: Session, delay_s: int):
+async def refresh_forever(db: Engine, delay_s: int):
     try:
         while True:
             await asyncio.sleep(delay_s)
@@ -52,17 +54,18 @@ async def refresh_forever(db: Session, delay_s: int):
         return
 
 
-def arrage_refresh_subscriptions(db: Session) -> asyncio.Task[None]:
+def arrage_refresh_subscriptions(db: Engine) -> asyncio.Task[None]:
 
     now = datetime.now()
     this_middle_night = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     # Check if already refreshed today.
-    logs = db.exec(
-        select(models.db.SubscriptionsRefreshLog).where(
-            models.db.SubscriptionsRefreshLog.refresh_time >= this_middle_night
-        )
-    ).all()
+    with Session(db) as ses:
+        logs = ses.exec(
+            select(models.db.SubscriptionsRefreshLog).where(
+                models.db.SubscriptionsRefreshLog.refresh_time >= this_middle_night
+            )
+        ).all()
 
     # If no refresh log today, refresh immediate.
     if len(logs) == 0:

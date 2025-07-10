@@ -7,6 +7,7 @@ import json
 from loguru import logger
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+import redis.asyncio as redis
 
 from typing import Annotated
 
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/wx")
 async def wechat_login_callback(
     code: str,
     state: str,
-    rdb: deps.Rdb,
+    rdb: redis.Redis = Depends(deps.get_rdb),
     db: Session = Depends(deps.get_db_session),
     conf: config.Config = Depends(config.get_config),
     wx: wechat.client.WxClient = Depends(deps.get_wxclient),

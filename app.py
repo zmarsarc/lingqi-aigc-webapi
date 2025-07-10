@@ -1,10 +1,10 @@
 import uvicorn
-from aigc import config, deps, bg_tasks
+from aigc import config, bg_tasks
 from argparse import ArgumentParser
 import redis.asyncio as redis
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from sqlmodel import Session
+from sqlmodel import create_engine, SQLModel
 from loguru import logger
 
 from aigc.router import router
@@ -23,19 +23,23 @@ async def app_lifespan(app: FastAPI):
         decode_responses=True,
     )
     rdb = redis.Redis(connection_pool=conn_pool)
-    deps.set_rdb_deps(app, rdb)
+    app.state.rdb = rdb
+
+    # Setup database engine.
+    engine = create_engine(
+        url=conf.database.url, connect_args={"check_same_thread": False}
+    )
+    SQLModel.metadata.create_all(engine)
+    app.state.db = engine
 
     # Setup subscription manage task.
     # TODO: if reload config, database file may changed so must reload this task.
-    dbses = Session(deps.get_db_engine(conf.database.file))
-    refresh_task = bg_tasks.arrage_refresh_subscriptions(dbses)
+    refresh_task = bg_tasks.arrage_refresh_subscriptions(engine)
 
     yield
 
     refresh_task.cancel()
     await refresh_task
-    dbses.close()
-
     await conn_pool.aclose()
 
 
