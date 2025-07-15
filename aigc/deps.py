@@ -2,7 +2,7 @@ from fastapi import Depends, HTTPException, Header, Request, FastAPI
 from sqlalchemy import Engine
 from sqlmodel import Session
 import redis.asyncio as redis
-from . import sessions, config, wx
+from . import sessions, config, wx, models
 from collections.abc import Iterator
 
 
